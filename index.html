@@ -71,6 +71,29 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .search-results {
+            background: #374151;
+            border-color: #4b5563;
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
@@ -230,15 +253,29 @@
 
             <!-- Transactions Section -->
             <div id="transactionsSection" class="hidden p-6">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-xl font-bold">المعاملات المالية</h2>
-                    <div class="space-x-2 flex gap-2">
-                        <button onclick="openModal('incomeModal')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
-                            ➕ إيراد
-                        </button>
-                        <button onclick="openModal('expenseModal')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
-                            ➖ مصروف
-                        </button>
+                    <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        <!-- Search and Filter -->
+                        <div class="search-container">
+                            <input type="text" id="transactionSearch" placeholder="البحث في المعاملات..." 
+                                   class="w-full md:w-64 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base"
+                                   oninput="searchTransactions()">
+                        </div>
+                        <select id="transactionFilter" onchange="filterTransactions()" 
+                                class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base">
+                            <option value="">جميع المعاملات</option>
+                            <option value="income">الإيرادات فقط</option>
+                            <option value="expense">المصروفات فقط</option>
+                        </select>
+                        <div class="flex gap-2">
+                            <button onclick="openModal('incomeModal')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                ➕ إيراد
+                            </button>
+                            <button onclick="openModal('expenseModal')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                ➖ مصروف
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -253,11 +290,28 @@
 
             <!-- Inventory Section -->
             <div id="inventorySection" class="hidden p-6">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-xl font-bold">إدارة المخزون</h2>
-                    <button onclick="openModal('productModal')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        ➕ منتج جديد
-                    </button>
+                    <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        <!-- Search and Filter -->
+                        <div class="search-container">
+                            <input type="text" id="productSearch" placeholder="البحث في المنتجات..." 
+                                   class="w-full md:w-64 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base"
+                                   oninput="searchProducts()">
+                        </div>
+                        <select id="productFilter" onchange="filterProducts()" 
+                                class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base">
+                            <option value="">جميع التصنيفات</option>
+                            <option value="مواد غذائية">مواد غذائية</option>
+                            <option value="إلكترونيات">إلكترونيات</option>
+                            <option value="ملابس">ملابس</option>
+                            <option value="أدوات">أدوات</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                        <button onclick="openModal('productModal')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            ➕ منتج جديد
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
@@ -271,11 +325,19 @@
 
             <!-- Customers Section -->
             <div id="customersSection" class="hidden p-6">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-xl font-bold">إدارة العملاء</h2>
-                    <button onclick="openModal('customerModal')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        ➕ عميل جديد
-                    </button>
+                    <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        <!-- Search -->
+                        <div class="search-container">
+                            <input type="text" id="customerSearch" placeholder="البحث في العملاء..." 
+                                   class="w-full md:w-64 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base"
+                                   oninput="searchCustomers()">
+                        </div>
+                        <button onclick="openModal('customerModal')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            ➕ عميل جديد
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
@@ -289,11 +351,19 @@
 
             <!-- Sales Section -->
             <div id="salesSection" class="hidden p-6">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-xl font-bold">المبيعات والطلبات</h2>
-                    <button onclick="openModal('saleModal')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        ➕ عملية بيع
-                    </button>
+                    <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        <!-- Search -->
+                        <div class="search-container">
+                            <input type="text" id="salesSearch" placeholder="البحث في المبيعات..." 
+                                   class="w-full md:w-64 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base"
+                                   oninput="searchSales()">
+                        </div>
+                        <button onclick="openModal('saleModal')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            ➕ عملية بيع
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
@@ -376,6 +446,7 @@
                         <option value="رواتب">رواتب</option>
                         <option value="إيجار">إيجار</option>
                         <option value="مواصلات">مواصلات</option>
+                        <option value="شراء منتجات">شراء منتجات</option>
                         <option value="أخرى">أخرى</option>
                     </select>
                 </div>
@@ -397,15 +468,11 @@
                     <input type="text" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2">سعر الشراء (درهم)</label>
-                    <input type="number" step="0.01" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
-                </div>
-                <div class="mb-4">
                     <label class="block text-sm font-medium mb-2">سعر البيع (درهم)</label>
                     <input type="number" step="0.01" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2">الكمية</label>
+                    <label class="block text-sm font-medium mb-2">الكمية المتوفرة</label>
                     <input type="number" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
                 </div>
                 <div class="mb-6">
@@ -422,6 +489,43 @@
                 <div class="flex gap-3">
                     <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة</button>
                     <button type="button" onclick="closeModal('productModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4 text-blue-600">✏️ تعديل المنتج</h3>
+            <form onsubmit="updateProduct(event)">
+                <input type="hidden" id="editProductId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">اسم المنتج</label>
+                    <input type="text" id="editProductName" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">سعر البيع (درهم)</label>
+                    <input type="number" step="0.01" min="0" id="editProductPrice" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الكمية المتوفرة</label>
+                    <input type="number" min="0" id="editProductQuantity" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">التصنيف</label>
+                    <select id="editProductCategory" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                        <option value="">اختر التصنيف</option>
+                        <option value="مواد غذائية">مواد غذائية</option>
+                        <option value="إلكترونيات">إلكترونيات</option>
+                        <option value="ملابس">ملابس</option>
+                        <option value="أدوات">أدوات</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-md transition-colors">حفظ التغييرات</button>
+                    <button type="button" onclick="closeModal('editProductModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -447,6 +551,32 @@
                 <div class="flex gap-3">
                     <button type="submit" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة</button>
                     <button type="button" onclick="closeModal('customerModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Customer Modal -->
+    <div id="editCustomerModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4 text-purple-600">✏️ تعديل العميل</h3>
+            <form onsubmit="updateCustomer(event)">
+                <input type="hidden" id="editCustomerId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الاسم</label>
+                    <input type="text" id="editCustomerName" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">رقم الهاتف</label>
+                    <input type="tel" id="editCustomerPhone" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">العنوان</label>
+                    <textarea id="editCustomerAddress" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base h-20"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-md transition-colors">حفظ التغييرات</button>
+                    <button type="button" onclick="closeModal('editCustomerModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -500,7 +630,6 @@
           messagingSenderId: "66817958227",
           appId: "1:66817958227:web:aa253e283e59f4a78b01a6",
           measurementId: "G-B7Q0BMK461"
-          
         };
 
         // Initialize Firebase (Demo mode)
@@ -511,6 +640,14 @@
 
         // Demo data storage
         let demoData = {
+            transactions: [],
+            products: [],
+            customers: [],
+            sales: []
+        };
+
+        // Filtered data for search/filter functionality
+        let filteredData = {
             transactions: [],
             products: [],
             customers: [],
@@ -682,6 +819,23 @@
             if (form) form.reset();
         }
 
+        // Custom confirmation dialog
+        function showConfirmDialog(message, onConfirm) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <div class="text-yellow-500 text-center mb-4 text-4xl">⚠️</div>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4 text-center">${message}</p>
+                    <div class="flex justify-end space-x-3 gap-3">
+                        <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" onclick="this.closest('.fixed').remove()">إلغاء</button>
+                        <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="this.closest('.fixed').remove(); (${onConfirm.toString()})()">تأكيد</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
         // Custom alert function
         function showErrorMessage(message) {
             const modal = document.createElement('div');
@@ -713,7 +867,11 @@
         // Data operations
         async function loadData() {
             if (isDemo) {
-                // Load demo data
+                // Initialize filtered data
+                filteredData.transactions = [...demoData.transactions];
+                filteredData.products = [...demoData.products];
+                filteredData.customers = [...demoData.customers];
+                filteredData.sales = [...demoData.sales];
                 return;
             } else {
                 // Load from Firebase
@@ -729,9 +887,258 @@
                     demoData.products = products.docs.map(doc => ({id: doc.id, ...doc.data()}));
                     demoData.customers = customers.docs.map(doc => ({id: doc.id, ...doc.data()}));
                     demoData.sales = sales.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    
+                    // Initialize filtered data
+                    filteredData.transactions = [...demoData.transactions];
+                    filteredData.products = [...demoData.products];
+                    filteredData.customers = [...demoData.customers];
+                    filteredData.sales = [...demoData.sales];
                 } catch (error) {
                     console.error('خطأ في تحميل البيانات:', error);
                 }
+            }
+        }
+
+        // Search and Filter Functions
+        function searchTransactions() {
+            const searchTerm = document.getElementById('transactionSearch').value.toLowerCase();
+            const filter = document.getElementById('transactionFilter').value;
+            
+            filteredData.transactions = demoData.transactions.filter(transaction => {
+                const matchesSearch = transaction.description.toLowerCase().includes(searchTerm) ||
+                                    transaction.category.toLowerCase().includes(searchTerm);
+                const matchesFilter = filter === '' || transaction.type === filter;
+                return matchesSearch && matchesFilter;
+            });
+            
+            loadTransactions();
+        }
+
+        function filterTransactions() {
+            searchTransactions(); // This will apply both search and filter
+        }
+
+        function searchProducts() {
+            const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+            const filter = document.getElementById('productFilter').value;
+            
+            filteredData.products = demoData.products.filter(product => {
+                const matchesSearch = product.name.toLowerCase().includes(searchTerm);
+                const matchesFilter = filter === '' || product.category === filter;
+                return matchesSearch && matchesFilter;
+            });
+            
+            loadProducts();
+        }
+
+        function filterProducts() {
+            searchProducts(); // This will apply both search and filter
+        }
+
+        function searchCustomers() {
+            const searchTerm = document.getElementById('customerSearch').value.toLowerCase();
+            
+            filteredData.customers = demoData.customers.filter(customer => {
+                return customer.name.toLowerCase().includes(searchTerm) ||
+                       customer.phone.includes(searchTerm) ||
+                       customer.address.toLowerCase().includes(searchTerm);
+            });
+            
+            loadCustomers();
+        }
+
+        function searchSales() {
+            const searchTerm = document.getElementById('salesSearch').value.toLowerCase();
+            
+            filteredData.sales = demoData.sales.filter(sale => {
+                const customer = demoData.customers.find(c => c.id === sale.customerId);
+                const product = demoData.products.find(p => p.id === sale.productId);
+                
+                return (customer && customer.name.toLowerCase().includes(searchTerm)) ||
+                       (product && product.name.toLowerCase().includes(searchTerm));
+            });
+            
+            loadSales();
+        }
+
+        // Delete Functions
+        function deleteTransaction(id) {
+            showConfirmDialog('هل أنت متأكد من حذف هذه المعاملة؟', () => {
+                if (isDemo) {
+                    demoData.transactions = demoData.transactions.filter(t => t.id !== id);
+                    filteredData.transactions = filteredData.transactions.filter(t => t.id !== id);
+                } else {
+                    // Delete from Firebase
+                    db.collection('transactions').doc(id).delete();
+                }
+                
+                showSuccessMessage('تم حذف المعاملة بنجاح');
+                loadTransactions();
+                if (currentSection === 'dashboard') updateDashboard();
+            });
+        }
+
+        function deleteProduct(id) {
+            showConfirmDialog('هل أنت متأكد من حذف هذا المنتج؟', () => {
+                if (isDemo) {
+                    demoData.products = demoData.products.filter(p => p.id !== id);
+                    filteredData.products = filteredData.products.filter(p => p.id !== id);
+                } else {
+                    // Delete from Firebase
+                    db.collection('products').doc(id).delete();
+                }
+                
+                showSuccessMessage('تم حذف المنتج بنجاح');
+                loadProducts();
+                if (currentSection === 'dashboard') updateDashboard();
+            });
+        }
+
+        function deleteCustomer(id) {
+            showConfirmDialog('هل أنت متأكد من حذف هذا العميل؟', () => {
+                if (isDemo) {
+                    demoData.customers = demoData.customers.filter(c => c.id !== id);
+                    filteredData.customers = filteredData.customers.filter(c => c.id !== id);
+                } else {
+                    // Delete from Firebase
+                    db.collection('customers').doc(id).delete();
+                }
+                
+                showSuccessMessage('تم حذف العميل بنجاح');
+                loadCustomers();
+                if (currentSection === 'dashboard') updateDashboard();
+            });
+        }
+
+        function deleteSale(id) {
+            showConfirmDialog('هل أنت متأكد من حذف هذه العملية؟', () => {
+                if (isDemo) {
+                    demoData.sales = demoData.sales.filter(s => s.id !== id);
+                    filteredData.sales = filteredData.sales.filter(s => s.id !== id);
+                } else {
+                    // Delete from Firebase
+                    db.collection('sales').doc(id).delete();
+                }
+                
+                showSuccessMessage('تم حذف العملية بنجاح');
+                loadSales();
+                if (currentSection === 'dashboard') updateDashboard();
+            });
+        }
+
+        // Edit Functions
+        function editProduct(id) {
+            const product = demoData.products.find(p => p.id === id);
+            if (product) {
+                document.getElementById('editProductId').value = id;
+                document.getElementById('editProductName').value = product.name;
+                document.getElementById('editProductPrice').value = product.sellPrice;
+                document.getElementById('editProductQuantity').value = product.quantity;
+                document.getElementById('editProductCategory').value = product.category;
+                openModal('editProductModal');
+            }
+        }
+
+        function editCustomer(id) {
+            const customer = demoData.customers.find(c => c.id === id);
+            if (customer) {
+                document.getElementById('editCustomerId').value = id;
+                document.getElementById('editCustomerName').value = customer.name;
+                document.getElementById('editCustomerPhone').value = customer.phone;
+                document.getElementById('editCustomerAddress').value = customer.address;
+                openModal('editCustomerModal');
+            }
+        }
+
+        // Update Functions
+        async function updateProduct(event) {
+            event.preventDefault();
+            const form = event.target;
+            const id = form.elements[0].value;
+            const name = form.elements[1].value;
+            const sellPrice = parseFloat(form.elements[2].value);
+            const quantity = parseInt(form.elements[3].value);
+            const category = form.elements[4].value;
+
+            try {
+                if (isDemo) {
+                    const productIndex = demoData.products.findIndex(p => p.id === id);
+                    if (productIndex !== -1) {
+                        demoData.products[productIndex] = {
+                            ...demoData.products[productIndex],
+                            name,
+                            sellPrice,
+                            quantity,
+                            category
+                        };
+                        
+                        // Update filtered data
+                        const filteredIndex = filteredData.products.findIndex(p => p.id === id);
+                        if (filteredIndex !== -1) {
+                            filteredData.products[filteredIndex] = demoData.products[productIndex];
+                        }
+                    }
+                } else {
+                    await db.collection('products').doc(id).update({
+                        name,
+                        sellPrice,
+                        quantity,
+                        category
+                    });
+                    await loadData();
+                }
+
+                showSuccessMessage('تم تحديث المنتج بنجاح');
+                closeModal('editProductModal');
+                loadProducts();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في تحديث المنتج:', error);
+                showErrorMessage('حدث خطأ في تحديث المنتج');
+            }
+        }
+
+        async function updateCustomer(event) {
+            event.preventDefault();
+            const form = event.target;
+            const id = form.elements[0].value;
+            const name = form.elements[1].value;
+            const phone = form.elements[2].value;
+            const address = form.elements[3].value;
+
+            try {
+                if (isDemo) {
+                    const customerIndex = demoData.customers.findIndex(c => c.id === id);
+                    if (customerIndex !== -1) {
+                        demoData.customers[customerIndex] = {
+                            ...demoData.customers[customerIndex],
+                            name,
+                            phone,
+                            address
+                        };
+                        
+                        // Update filtered data
+                        const filteredIndex = filteredData.customers.findIndex(c => c.id === id);
+                        if (filteredIndex !== -1) {
+                            filteredData.customers[filteredIndex] = demoData.customers[customerIndex];
+                        }
+                    }
+                } else {
+                    await db.collection('customers').doc(id).update({
+                        name,
+                        phone,
+                        address
+                    });
+                    await loadData();
+                }
+
+                showSuccessMessage('تم تحديث العميل بنجاح');
+                closeModal('editCustomerModal');
+                loadCustomers();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في تحديث العميل:', error);
+                showErrorMessage('حدث خطأ في تحديث العميل');
             }
         }
 
@@ -756,6 +1163,7 @@
                 if (isDemo) {
                     transaction.id = Date.now().toString();
                     demoData.transactions.unshift(transaction);
+                    filteredData.transactions.unshift(transaction);
                 } else {
                     await db.collection('transactions').add(transaction);
                     await loadData();
@@ -791,6 +1199,7 @@
                 if (isDemo) {
                     transaction.id = Date.now().toString();
                     demoData.transactions.unshift(transaction);
+                    filteredData.transactions.unshift(transaction);
                 } else {
                     await db.collection('transactions').add(transaction);
                     await loadData();
@@ -806,22 +1215,21 @@
             }
         }
 
-        // Product operations
+        // Product operations (without purchase price - auto-calculated from expenses)
         async function addProduct(event) {
             event.preventDefault();
             const form = event.target;
             const name = form.elements[0].value;
-            const costPrice = parseFloat(form.elements[1].value);
-            const sellPrice = parseFloat(form.elements[2].value);
-            const quantity = parseInt(form.elements[3].value);
-            const category = form.elements[4].value;
+            const sellPrice = parseFloat(form.elements[1].value);
+            const quantity = parseInt(form.elements[2].value);
+            const category = form.elements[3].value;
 
             const product = {
                 name,
-                costPrice,
                 sellPrice,
                 quantity,
                 category,
+                costPrice: 0, // Will be calculated from expenses
                 date: new Date().toISOString(),
                 userId: currentUser?.uid || 'demo'
             };
@@ -830,6 +1238,7 @@
                 if (isDemo) {
                     product.id = Date.now().toString();
                     demoData.products.unshift(product);
+                    filteredData.products.unshift(product);
                 } else {
                     await db.collection('products').add(product);
                     await loadData();
@@ -865,6 +1274,7 @@
                 if (isDemo) {
                     customer.id = Date.now().toString();
                     demoData.customers.unshift(customer);
+                    filteredData.customers.unshift(customer);
                 } else {
                     await db.collection('customers').add(customer);
                     await loadData();
@@ -904,11 +1314,18 @@
                 if (isDemo) {
                     sale.id = Date.now().toString();
                     demoData.sales.unshift(sale);
+                    filteredData.sales.unshift(sale);
                     
                     // Update product quantity
-                    const product = demoData.products.find(p => p.id === productId);
-                    if (product) {
-                        product.quantity -= quantity;
+                    const productIndex = demoData.products.findIndex(p => p.id === productId);
+                    if (productIndex !== -1) {
+                        demoData.products[productIndex].quantity -= quantity;
+                        
+                        // Update filtered data
+                        const filteredProductIndex = filteredData.products.findIndex(p => p.id === productId);
+                        if (filteredProductIndex !== -1) {
+                            filteredData.products[filteredProductIndex].quantity -= quantity;
+                        }
                     }
                     
                     // Add income transaction
@@ -922,6 +1339,7 @@
                         userId: currentUser?.uid || 'demo'
                     };
                     demoData.transactions.unshift(incomeTransaction);
+                    filteredData.transactions.unshift(incomeTransaction);
                 } else {
                     await db.collection('sales').add(sale);
                     await loadData();
@@ -959,12 +1377,12 @@
         function loadTransactions() {
             const transactionsList = document.getElementById('transactionsList');
             
-            if (demoData.transactions.length === 0) {
+            if (filteredData.transactions.length === 0) {
                 transactionsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد معاملات</p>';
                 return;
             }
 
-            transactionsList.innerHTML = demoData.transactions.map(transaction => `
+            transactionsList.innerHTML = filteredData.transactions.map(transaction => `
                 <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
@@ -974,10 +1392,17 @@
                                 <p class="text-sm text-gray-600 dark:text-gray-400">${transaction.category} • ${new Date(transaction.date).toLocaleDateString('ar-AE')}</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <span class="font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
-                                ${transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)} درهم
-                            </span>
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <span class="font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                                    ${transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)} درهم
+                                </span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="deleteTransaction('${transaction.id}')" class="text-red-500 hover:text-red-700 p-1">
+                                    🗑️
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -987,46 +1412,74 @@
         function loadProducts() {
             const productsList = document.getElementById('productsList');
             
-            if (demoData.products.length === 0) {
+            if (filteredData.products.length === 0) {
                 productsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد منتجات</p>';
                 return;
             }
 
-            productsList.innerHTML = demoData.products.map(product => `
-                <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-semibold">${product.name}</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">${product.category}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm">الكمية: <span class="font-semibold ${product.quantity < 10 ? 'text-red-500' : 'text-green-500'}">${product.quantity}</span></p>
-                            <p class="text-sm">السعر: <span class="font-semibold">${product.sellPrice} درهم</span></p>
-                            <p class="text-sm">الربح: <span class="font-semibold text-blue-600">${(product.sellPrice - product.costPrice).toFixed(2)} درهم</span></p>
+            productsList.innerHTML = filteredData.products.map(product => {
+                // Calculate profit margin from expenses
+                const productExpenses = demoData.transactions
+                    .filter(t => t.type === 'expense' && t.description.toLowerCase().includes(product.name.toLowerCase()))
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const estimatedCostPrice = productExpenses > 0 ? productExpenses / (product.quantity || 1) : 0;
+                const profit = product.sellPrice - estimatedCostPrice;
+                
+                return `
+                    <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold">${product.name}</h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${product.category}</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="text-right">
+                                    <p class="text-sm">الكمية: <span class="font-semibold ${product.quantity < 10 ? 'text-red-500' : 'text-green-500'}">${product.quantity}</span></p>
+                                    <p class="text-sm">السعر: <span class="font-semibold">${product.sellPrice} درهم</span></p>
+                                    <p class="text-sm">الربح المقدر: <span class="font-semibold text-blue-600">${profit.toFixed(2)} درهم</span></p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="editProduct('${product.id}')" class="text-blue-500 hover:text-blue-700 p-1">
+                                        ✏️
+                                    </button>
+                                    <button onclick="deleteProduct('${product.id}')" class="text-red-500 hover:text-red-700 p-1">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function loadCustomers() {
             const customersList = document.getElementById('customersList');
             
-            if (demoData.customers.length === 0) {
+            if (filteredData.customers.length === 0) {
                 customersList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد عملاء</p>';
                 return;
             }
 
-            customersList.innerHTML = demoData.customers.map(customer => `
+            customersList.innerHTML = filteredData.customers.map(customer => `
                 <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-semibold">${customer.name}</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">${customer.phone}</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">${customer.address}</p>
-                        </div>
-                        <div class="text-right">
+                        <div class="flex items-center gap-3">
                             <span class="text-2xl">👤</span>
+                            <div>
+                                <h3 class="font-semibold">${customer.name}</h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${customer.phone}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${customer.address}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editCustomer('${customer.id}')" class="text-blue-500 hover:text-blue-700 p-1">
+                                ✏️
+                            </button>
+                            <button onclick="deleteCustomer('${customer.id}')" class="text-red-500 hover:text-red-700 p-1">
+                                🗑️
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1036,26 +1489,35 @@
         function loadSales() {
             const salesList = document.getElementById('salesList');
             
-            if (demoData.sales.length === 0) {
+            if (filteredData.sales.length === 0) {
                 salesList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد مبيعات</p>';
                 return;
             }
 
-            salesList.innerHTML = demoData.sales.map(sale => {
+            salesList.innerHTML = filteredData.sales.map(sale => {
                 const customer = demoData.customers.find(c => c.id === sale.customerId);
                 const product = demoData.products.find(p => p.id === sale.productId);
                 
                 return `
                     <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold">${product?.name || 'منتج محذوف'}</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">العميل: ${customer?.name || 'عميل محذوف'}</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">الكمية: ${sale.quantity}</p>
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">🛒</span>
+                                <div>
+                                    <h3 class="font-semibold">${product?.name || 'منتج محذوف'}</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">العميل: ${customer?.name || 'عميل محذوف'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">الكمية: ${sale.quantity} • ${new Date(sale.date).toLocaleDateString('ar-AE')}</p>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <p class="font-bold text-green-600">${sale.total.toFixed(2)} درهم</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">${new Date(sale.date).toLocaleDateString('ar-AE')}</p>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <p class="font-bold text-green-600">${sale.total.toFixed(2)} درهم</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="deleteSale('${sale.id}')" class="text-red-500 hover:text-red-700 p-1">
+                                        🗑️
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1074,7 +1536,7 @@
         function loadProductsForSelect() {
             const productSelect = document.getElementById('productSelect');
             productSelect.innerHTML = '<option value="">اختر المنتج</option>' +
-                demoData.products.map(product => 
+                demoData.products.filter(product => product.quantity > 0).map(product => 
                     `<option value="${product.id}" data-price="${product.sellPrice}">${product.name} (المتوفر: ${product.quantity})</option>`
                 ).join('');
         }

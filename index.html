@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المشاريع المتكامل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        secondary: '#f3f4f6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark .card:hover {
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal {
+            backdrop-filter: blur(5px);
+        }
+        
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #5D5CDE;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-lg font-semibold">جاري تحميل النظام...</p>
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="hidden fixed inset-0 bg-primary flex items-center justify-center z-40">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-primary mb-2">🏢 إدارة المشاريع</h1>
+                <p class="text-gray-600 dark:text-gray-400">تسجيل الدخول للنظام</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">البريد الإلكتروني</label>
+                    <input type="email" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base" placeholder="admin@example.com">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">كلمة المرور</label>
+                    <input type="password" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-md transition-colors mb-4">
+                    تسجيل الدخول
+                </button>
+                <div class="text-center text-sm text-gray-600 dark:text-gray-400">
+                    <p>حساب تجريبي: admin@demo.com / password123</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <!-- Sidebar -->
+        <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white dark:bg-gray-800 shadow-lg transform translate-x-0 sidebar-transition z-30">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-primary">🏢 إدارة المشاريع</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400" id="userEmail"></p>
+            </div>
+            
+            <nav class="mt-6">
+                <a href="#" onclick="showSection('dashboard')" class="nav-item flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="ml-3">📊</span>
+                    لوحة التحكم
+                </a>
+                <a href="#" onclick="showSection('transactions')" class="nav-item flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="ml-3">💰</span>
+                    المعاملات المالية
+                </a>
+                <a href="#" onclick="showSection('inventory')" class="nav-item flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="ml-3">📦</span>
+                    إدارة المخزون
+                </a>
+                <a href="#" onclick="showSection('customers')" class="nav-item flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="ml-3">👥</span>
+                    إدارة العملاء
+                </a>
+                <a href="#" onclick="showSection('sales')" class="nav-item flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="ml-3">🛒</span>
+                    المبيعات والطلبات
+                </a>
+                <a href="#" onclick="showSection('reports')" class="nav-item flex items-center px-6 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="ml-3">📈</span>
+                    التقارير والإحصائيات
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 w-full p-6 border-t border-gray-200 dark:border-gray-700">
+                <button onclick="handleLogout()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-md transition-colors">
+                    تسجيل الخروج
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Sidebar Toggle -->
+        <div class="md:hidden fixed top-4 right-4 z-40">
+            <button onclick="toggleSidebar()" class="bg-primary text-white p-3 rounded-lg shadow-lg">
+                ☰
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="md:mr-64 min-h-screen">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <h1 id="pageTitle" class="text-2xl font-bold">لوحة التحكم</h1>
+                    <div class="text-sm text-gray-600 dark:text-gray-400" id="lastUpdate"></div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <div id="dashboardSection" class="p-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="card bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-100 text-sm">إجمالي الإيرادات</p>
+                                <p class="text-2xl font-bold" id="dashTotalIncome">0 درهم</p>
+                            </div>
+                            <div class="text-3xl opacity-80">📈</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-red-100 text-sm">إجمالي المصروفات</p>
+                                <p class="text-2xl font-bold" id="dashTotalExpenses">0 درهم</p>
+                            </div>
+                            <div class="text-3xl opacity-80">📉</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm">عدد المنتجات</p>
+                                <p class="text-2xl font-bold" id="dashProductCount">0</p>
+                            </div>
+                            <div class="text-3xl opacity-80">📦</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-purple-100 text-sm">عدد العملاء</p>
+                                <p class="text-2xl font-bold" id="dashCustomerCount">0</p>
+                            </div>
+                            <div class="text-3xl opacity-80">👥</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4">الإيرادات مقابل المصروفات</h3>
+                        <canvas id="incomeExpenseChart" width="400" height="200"></canvas>
+                    </div>
+                    
+                    <div class="card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4">توزيع المصروفات</h3>
+                        <canvas id="expenseDistributionChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Section -->
+            <div id="transactionsSection" class="hidden p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">المعاملات المالية</h2>
+                    <div class="space-x-2 flex gap-2">
+                        <button onclick="openModal('incomeModal')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            ➕ إيراد
+                        </button>
+                        <button onclick="openModal('expenseModal')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            ➖ مصروف
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div id="transactionsList">
+                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">جاري تحميل المعاملات...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Section -->
+            <div id="inventorySection" class="hidden p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">إدارة المخزون</h2>
+                    <button onclick="openModal('productModal')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        ➕ منتج جديد
+                    </button>
+                </div>
+                
+                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div id="productsList">
+                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">جاري تحميل المنتجات...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Section -->
+            <div id="customersSection" class="hidden p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">إدارة العملاء</h2>
+                    <button onclick="openModal('customerModal')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        ➕ عميل جديد
+                    </button>
+                </div>
+                
+                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div id="customersList">
+                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">جاري تحميل العملاء...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Section -->
+            <div id="salesSection" class="hidden p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">المبيعات والطلبات</h2>
+                    <button onclick="openModal('saleModal')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        ➕ عملية بيع
+                    </button>
+                </div>
+                
+                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div id="salesList">
+                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">جاري تحميل المبيعات...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reportsSection" class="hidden p-6">
+                <h2 class="text-xl font-bold mb-6">التقارير والإحصائيات</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4">تقرير المبيعات الشهرية</h3>
+                        <canvas id="monthlySalesChart" width="400" height="200"></canvas>
+                    </div>
+                    
+                    <div class="card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4">أفضل المنتجات مبيعاً</h3>
+                        <canvas id="topProductsChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Income Modal -->
+    <div id="incomeModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4 text-green-600">➕ إضافة إيراد جديد</h3>
+            <form onsubmit="addIncome(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">المبلغ (درهم)</label>
+                    <input type="number" step="0.01" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الوصف</label>
+                    <input type="text" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">التصنيف</label>
+                    <select required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                        <option value="">اختر التصنيف</option>
+                        <option value="مبيعات">مبيعات</option>
+                        <option value="استثمار">استثمار</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة</button>
+                    <button type="button" onclick="closeModal('incomeModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4 text-red-600">➖ إضافة مصروف جديد</h3>
+            <form onsubmit="addExpense(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">المبلغ (درهم)</label>
+                    <input type="number" step="0.01" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الوصف</label>
+                    <input type="text" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">التصنيف</label>
+                    <select required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                        <option value="">اختر التصنيف</option>
+                        <option value="مواد غذائية">مواد غذائية</option>
+                        <option value="رواتب">رواتب</option>
+                        <option value="إيجار">إيجار</option>
+                        <option value="مواصلات">مواصلات</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة</button>
+                    <button type="button" onclick="closeModal('expenseModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4 text-blue-600">📦 إضافة منتج جديد</h3>
+            <form onsubmit="addProduct(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">اسم المنتج</label>
+                    <input type="text" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">سعر الشراء (درهم)</label>
+                    <input type="number" step="0.01" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">سعر البيع (درهم)</label>
+                    <input type="number" step="0.01" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الكمية</label>
+                    <input type="number" min="0" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">التصنيف</label>
+                    <select required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                        <option value="">اختر التصنيف</option>
+                        <option value="مواد غذائية">مواد غذائية</option>
+                        <option value="إلكترونيات">إلكترونيات</option>
+                        <option value="ملابس">ملابس</option>
+                        <option value="أدوات">أدوات</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة</button>
+                    <button type="button" onclick="closeModal('productModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer Modal -->
+    <div id="customerModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4 text-purple-600">👥 إضافة عميل جديد</h3>
+            <form onsubmit="addCustomer(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الاسم</label>
+                    <input type="text" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">رقم الهاتف</label>
+                    <input type="tel" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">العنوان</label>
+                    <textarea required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base h-20"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة</button>
+                    <button type="button" onclick="closeModal('customerModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sale Modal -->
+    <div id="saleModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg mx-4">
+            <h3 class="text-lg font-bold mb-4 text-indigo-600">🛒 إضافة عملية بيع</h3>
+            <form onsubmit="addSale(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">العميل</label>
+                    <select id="customerSelect" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base">
+                        <option value="">اختر العميل</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">المنتج</label>
+                    <select id="productSelect" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base" onchange="updateProductPrice()">
+                        <option value="">اختر المنتج</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">الكمية</label>
+                    <input type="number" min="1" required class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-base" onchange="calculateTotal()">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">السعر (درهم)</label>
+                    <input type="number" step="0.01" min="0" required readonly class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-600 text-base">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">الإجمالي (درهم)</label>
+                    <input type="number" step="0.01" readonly class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-600 text-base font-bold">
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 rounded-md transition-colors">إضافة البيع</button>
+                    <button type="button" onclick="closeModal('saleModal')" class="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-3 rounded-md transition-colors">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration (Demo)
+        const firebaseConfig = {
+          apiKey: "AIzaSyDHikqID3WtiQpoomYmJQsvU4cu6UF-OgY",
+          authDomain: "adarti-e7963.firebaseapp.com",
+          databaseURL: "https://adarti-e7963-default-rtdb.firebaseio.com",
+          projectId: "adarti-e7963",
+          storageBucket: "adarti-e7963.firebasestorage.app",
+          messagingSenderId: "66817958227",
+          appId: "1:66817958227:web:aa253e283e59f4a78b01a6",
+          measurementId: "G-B7Q0BMK461"
+          
+        };
+
+        // Initialize Firebase (Demo mode)
+        let db, auth;
+        let isDemo = true;
+        let currentUser = null;
+        let currentSection = 'dashboard';
+
+        // Demo data storage
+        let demoData = {
+            transactions: [],
+            products: [],
+            customers: [],
+            sales: []
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        // Initialize dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        async function initializeApp() {
+            try {
+                // Simulate loading
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                if (isDemo) {
+                    // Demo mode - show login screen
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                } else {
+                    // Initialize Firebase
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    auth = firebase.auth();
+                    
+                    auth.onAuthStateChanged(user => {
+                        if (user) {
+                            showMainApp(user);
+                        } else {
+                            showLoginScreen();
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('خطأ في تهيئة التطبيق:', error);
+                showErrorMessage('حدث خطأ في تحميل التطبيق');
+            }
+        }
+
+        // Authentication
+        async function handleLogin(event) {
+            event.preventDefault();
+            const form = event.target;
+            const email = form.elements[0].value;
+            const password = form.elements[1].value;
+
+            try {
+                if (isDemo) {
+                    // Demo login
+                    if (email === 'admin@demo.com' && password === 'password123') {
+                        currentUser = { email: email };
+                        showMainApp(currentUser);
+                    } else {
+                        showErrorMessage('بيانات تسجيل الدخول غير صحيحة');
+                    }
+                } else {
+                    // Firebase login
+                    await auth.signInWithEmailAndPassword(email, password);
+                }
+            } catch (error) {
+                console.error('خطأ في تسجيل الدخول:', error);
+                showErrorMessage('خطأ في تسجيل الدخول');
+            }
+        }
+
+        function handleLogout() {
+            if (isDemo) {
+                currentUser = null;
+                showLoginScreen();
+            } else {
+                auth.signOut();
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function showMainApp(user) {
+            currentUser = user;
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = user.email;
+            
+            loadData();
+            showSection('dashboard');
+            updateLastUpdate();
+        }
+
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            const sections = ['dashboard', 'transactions', 'inventory', 'customers', 'sales', 'reports'];
+            sections.forEach(s => {
+                document.getElementById(s + 'Section').classList.add('hidden');
+            });
+
+            // Show selected section
+            document.getElementById(section + 'Section').classList.remove('hidden');
+            currentSection = section;
+
+            // Update page title
+            const titles = {
+                dashboard: 'لوحة التحكم',
+                transactions: 'المعاملات المالية',
+                inventory: 'إدارة المخزون',
+                customers: 'إدارة العملاء',
+                sales: 'المبيعات والطلبات',
+                reports: 'التقارير والإحصائيات'
+            };
+            document.getElementById('pageTitle').textContent = titles[section];
+
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-primary', 'text-white');
+            });
+            document.querySelector(`[onclick="showSection('${section}')"]`).classList.add('bg-primary', 'text-white');
+
+            // Load section-specific data
+            if (section === 'dashboard') {
+                updateDashboard();
+            } else if (section === 'transactions') {
+                loadTransactions();
+            } else if (section === 'inventory') {
+                loadProducts();
+            } else if (section === 'customers') {
+                loadCustomers();
+            } else if (section === 'sales') {
+                loadSales();
+                loadCustomersForSelect();
+                loadProductsForSelect();
+            } else if (section === 'reports') {
+                generateReports();
+            }
+        }
+
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('translate-x-full');
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+            // Reset form
+            const form = document.querySelector(`#${modalId} form`);
+            if (form) form.reset();
+        }
+
+        // Custom alert function
+        function showErrorMessage(message) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <div class="text-red-500 text-center mb-4 text-4xl">⚠️</div>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4 text-center">${message}</p>
+                    <button class="w-full px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded transition-colors" onclick="this.closest('.fixed').remove()">حسناً</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function showSuccessMessage(message) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <div class="text-green-500 text-center mb-4 text-4xl">✅</div>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4 text-center">${message}</p>
+                    <button class="w-full px-4 py-2 bg-green-500 text-white hover:bg-green-600 rounded transition-colors" onclick="this.closest('.fixed').remove()">حسناً</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            setTimeout(() => modal.remove(), 3000);
+        }
+
+        // Data operations
+        async function loadData() {
+            if (isDemo) {
+                // Load demo data
+                return;
+            } else {
+                // Load from Firebase
+                try {
+                    const [transactions, products, customers, sales] = await Promise.all([
+                        db.collection('transactions').where('userId', '==', currentUser.uid).get(),
+                        db.collection('products').where('userId', '==', currentUser.uid).get(),
+                        db.collection('customers').where('userId', '==', currentUser.uid).get(),
+                        db.collection('sales').where('userId', '==', currentUser.uid).get()
+                    ]);
+
+                    demoData.transactions = transactions.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    demoData.products = products.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    demoData.customers = customers.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    demoData.sales = sales.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                } catch (error) {
+                    console.error('خطأ في تحميل البيانات:', error);
+                }
+            }
+        }
+
+        // Transaction operations
+        async function addIncome(event) {
+            event.preventDefault();
+            const form = event.target;
+            const amount = parseFloat(form.elements[0].value);
+            const description = form.elements[1].value;
+            const category = form.elements[2].value;
+
+            const transaction = {
+                type: 'income',
+                amount,
+                description,
+                category,
+                date: new Date().toISOString(),
+                userId: currentUser?.uid || 'demo'
+            };
+
+            try {
+                if (isDemo) {
+                    transaction.id = Date.now().toString();
+                    demoData.transactions.unshift(transaction);
+                } else {
+                    await db.collection('transactions').add(transaction);
+                    await loadData();
+                }
+
+                showSuccessMessage('تم إضافة الإيراد بنجاح');
+                closeModal('incomeModal');
+                if (currentSection === 'transactions') loadTransactions();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في إضافة الإيراد:', error);
+                showErrorMessage('حدث خطأ في إضافة الإيراد');
+            }
+        }
+
+        async function addExpense(event) {
+            event.preventDefault();
+            const form = event.target;
+            const amount = parseFloat(form.elements[0].value);
+            const description = form.elements[1].value;
+            const category = form.elements[2].value;
+
+            const transaction = {
+                type: 'expense',
+                amount,
+                description,
+                category,
+                date: new Date().toISOString(),
+                userId: currentUser?.uid || 'demo'
+            };
+
+            try {
+                if (isDemo) {
+                    transaction.id = Date.now().toString();
+                    demoData.transactions.unshift(transaction);
+                } else {
+                    await db.collection('transactions').add(transaction);
+                    await loadData();
+                }
+
+                showSuccessMessage('تم إضافة المصروف بنجاح');
+                closeModal('expenseModal');
+                if (currentSection === 'transactions') loadTransactions();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في إضافة المصروف:', error);
+                showErrorMessage('حدث خطأ في إضافة المصروف');
+            }
+        }
+
+        // Product operations
+        async function addProduct(event) {
+            event.preventDefault();
+            const form = event.target;
+            const name = form.elements[0].value;
+            const costPrice = parseFloat(form.elements[1].value);
+            const sellPrice = parseFloat(form.elements[2].value);
+            const quantity = parseInt(form.elements[3].value);
+            const category = form.elements[4].value;
+
+            const product = {
+                name,
+                costPrice,
+                sellPrice,
+                quantity,
+                category,
+                date: new Date().toISOString(),
+                userId: currentUser?.uid || 'demo'
+            };
+
+            try {
+                if (isDemo) {
+                    product.id = Date.now().toString();
+                    demoData.products.unshift(product);
+                } else {
+                    await db.collection('products').add(product);
+                    await loadData();
+                }
+
+                showSuccessMessage('تم إضافة المنتج بنجاح');
+                closeModal('productModal');
+                if (currentSection === 'inventory') loadProducts();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في إضافة المنتج:', error);
+                showErrorMessage('حدث خطأ في إضافة المنتج');
+            }
+        }
+
+        // Customer operations
+        async function addCustomer(event) {
+            event.preventDefault();
+            const form = event.target;
+            const name = form.elements[0].value;
+            const phone = form.elements[1].value;
+            const address = form.elements[2].value;
+
+            const customer = {
+                name,
+                phone,
+                address,
+                date: new Date().toISOString(),
+                userId: currentUser?.uid || 'demo'
+            };
+
+            try {
+                if (isDemo) {
+                    customer.id = Date.now().toString();
+                    demoData.customers.unshift(customer);
+                } else {
+                    await db.collection('customers').add(customer);
+                    await loadData();
+                }
+
+                showSuccessMessage('تم إضافة العميل بنجاح');
+                closeModal('customerModal');
+                if (currentSection === 'customers') loadCustomers();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في إضافة العميل:', error);
+                showErrorMessage('حدث خطأ في إضافة العميل');
+            }
+        }
+
+        // Sale operations
+        async function addSale(event) {
+            event.preventDefault();
+            const form = event.target;
+            const customerId = form.elements[0].value;
+            const productId = form.elements[1].value;
+            const quantity = parseInt(form.elements[2].value);
+            const price = parseFloat(form.elements[3].value);
+            const total = parseFloat(form.elements[4].value);
+
+            const sale = {
+                customerId,
+                productId,
+                quantity,
+                price,
+                total,
+                date: new Date().toISOString(),
+                userId: currentUser?.uid || 'demo'
+            };
+
+            try {
+                if (isDemo) {
+                    sale.id = Date.now().toString();
+                    demoData.sales.unshift(sale);
+                    
+                    // Update product quantity
+                    const product = demoData.products.find(p => p.id === productId);
+                    if (product) {
+                        product.quantity -= quantity;
+                    }
+                    
+                    // Add income transaction
+                    const incomeTransaction = {
+                        id: Date.now().toString() + '_income',
+                        type: 'income',
+                        amount: total,
+                        description: `بيع منتج`,
+                        category: 'مبيعات',
+                        date: new Date().toISOString(),
+                        userId: currentUser?.uid || 'demo'
+                    };
+                    demoData.transactions.unshift(incomeTransaction);
+                } else {
+                    await db.collection('sales').add(sale);
+                    await loadData();
+                }
+
+                showSuccessMessage('تم إضافة البيع بنجاح');
+                closeModal('saleModal');
+                if (currentSection === 'sales') loadSales();
+                if (currentSection === 'dashboard') updateDashboard();
+            } catch (error) {
+                console.error('خطأ في إضافة البيع:', error);
+                showErrorMessage('حدث خطأ في إضافة البيع');
+            }
+        }
+
+        // UI Update functions
+        function updateDashboard() {
+            const totalIncome = demoData.transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalExpenses = demoData.transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            document.getElementById('dashTotalIncome').textContent = `${totalIncome.toFixed(2)} درهم`;
+            document.getElementById('dashTotalExpenses').textContent = `${totalExpenses.toFixed(2)} درهم`;
+            document.getElementById('dashProductCount').textContent = demoData.products.length;
+            document.getElementById('dashCustomerCount').textContent = demoData.customers.length;
+
+            // Update charts
+            updateCharts();
+        }
+
+        function loadTransactions() {
+            const transactionsList = document.getElementById('transactionsList');
+            
+            if (demoData.transactions.length === 0) {
+                transactionsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد معاملات</p>';
+                return;
+            }
+
+            transactionsList.innerHTML = demoData.transactions.map(transaction => `
+                <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">${transaction.type === 'income' ? '📈' : '📉'}</span>
+                            <div>
+                                <h3 class="font-semibold">${transaction.description}</h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${transaction.category} • ${new Date(transaction.date).toLocaleDateString('ar-AE')}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                                ${transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)} درهم
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadProducts() {
+            const productsList = document.getElementById('productsList');
+            
+            if (demoData.products.length === 0) {
+                productsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد منتجات</p>';
+                return;
+            }
+
+            productsList.innerHTML = demoData.products.map(product => `
+                <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold">${product.name}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${product.category}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm">الكمية: <span class="font-semibold ${product.quantity < 10 ? 'text-red-500' : 'text-green-500'}">${product.quantity}</span></p>
+                            <p class="text-sm">السعر: <span class="font-semibold">${product.sellPrice} درهم</span></p>
+                            <p class="text-sm">الربح: <span class="font-semibold text-blue-600">${(product.sellPrice - product.costPrice).toFixed(2)} درهم</span></p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadCustomers() {
+            const customersList = document.getElementById('customersList');
+            
+            if (demoData.customers.length === 0) {
+                customersList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد عملاء</p>';
+                return;
+            }
+
+            customersList.innerHTML = demoData.customers.map(customer => `
+                <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold">${customer.name}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${customer.phone}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${customer.address}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-2xl">👤</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadSales() {
+            const salesList = document.getElementById('salesList');
+            
+            if (demoData.sales.length === 0) {
+                salesList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد مبيعات</p>';
+                return;
+            }
+
+            salesList.innerHTML = demoData.sales.map(sale => {
+                const customer = demoData.customers.find(c => c.id === sale.customerId);
+                const product = demoData.products.find(p => p.id === sale.productId);
+                
+                return `
+                    <div class="card border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold">${product?.name || 'منتج محذوف'}</h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">العميل: ${customer?.name || 'عميل محذوف'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">الكمية: ${sale.quantity}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">${sale.total.toFixed(2)} درهم</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${new Date(sale.date).toLocaleDateString('ar-AE')}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadCustomersForSelect() {
+            const customerSelect = document.getElementById('customerSelect');
+            customerSelect.innerHTML = '<option value="">اختر العميل</option>' +
+                demoData.customers.map(customer => 
+                    `<option value="${customer.id}">${customer.name}</option>`
+                ).join('');
+        }
+
+        function loadProductsForSelect() {
+            const productSelect = document.getElementById('productSelect');
+            productSelect.innerHTML = '<option value="">اختر المنتج</option>' +
+                demoData.products.map(product => 
+                    `<option value="${product.id}" data-price="${product.sellPrice}">${product.name} (المتوفر: ${product.quantity})</option>`
+                ).join('');
+        }
+
+        function updateProductPrice() {
+            const productSelect = document.getElementById('productSelect');
+            const priceInput = productSelect.closest('form').elements[3];
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+            
+            if (selectedOption.dataset.price) {
+                priceInput.value = selectedOption.dataset.price;
+                calculateTotal();
+            }
+        }
+
+        function calculateTotal() {
+            const form = document.querySelector('#saleModal form');
+            const quantity = parseFloat(form.elements[2].value) || 0;
+            const price = parseFloat(form.elements[3].value) || 0;
+            const totalInput = form.elements[4];
+            
+            totalInput.value = (quantity * price).toFixed(2);
+        }
+
+        function updateLastUpdate() {
+            document.getElementById('lastUpdate').textContent = 
+                `آخر تحديث: ${new Date().toLocaleString('ar-AE')}`;
+        }
+
+        // Charts
+        function updateCharts() {
+            // Income vs Expense Chart
+            const incomeExpenseCtx = document.getElementById('incomeExpenseChart').getContext('2d');
+            
+            const totalIncome = demoData.transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalExpenses = demoData.transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            new Chart(incomeExpenseCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['الإيرادات', 'المصروفات'],
+                    datasets: [{
+                        data: [totalIncome, totalExpenses],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Expense Distribution Chart
+            const expenseDistributionCtx = document.getElementById('expenseDistributionChart').getContext('2d');
+            
+            const expensesByCategory = {};
+            demoData.transactions
+                .filter(t => t.type === 'expense')
+                .forEach(t => {
+                    expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+                });
+
+            new Chart(expenseDistributionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(expensesByCategory),
+                    datasets: [{
+                        data: Object.values(expensesByCategory),
+                        backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#10B981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function generateReports() {
+            // Monthly Sales Chart
+            const monthlySalesCtx = document.getElementById('monthlySalesChart').getContext('2d');
+            
+            const salesByMonth = {};
+            demoData.sales.forEach(sale => {
+                const month = new Date(sale.date).toLocaleDateString('ar-AE', { year: 'numeric', month: 'long' });
+                salesByMonth[month] = (salesByMonth[month] || 0) + sale.total;
+            });
+
+            new Chart(monthlySalesCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(salesByMonth),
+                    datasets: [{
+                        label: 'المبيعات',
+                        data: Object.values(salesByMonth),
+                        borderColor: '#5D5CDE',
+                        backgroundColor: '#5D5CDE20',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Top Products Chart
+            const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+            
+            const productSales = {};
+            demoData.sales.forEach(sale => {
+                const product = demoData.products.find(p => p.id === sale.productId);
+                if (product) {
+                    productSales[product.name] = (productSales[product.name] || 0) + sale.quantity;
+                }
+            });
+
+            const sortedProducts = Object.entries(productSales)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+
+            new Chart(topProductsCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedProducts.map(([name]) => name),
+                    datasets: [{
+                        data: sortedProducts.map(([,quantity]) => quantity),
+                        backgroundColor: '#8B5CF6',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
